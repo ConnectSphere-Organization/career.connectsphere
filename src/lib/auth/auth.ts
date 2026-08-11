@@ -55,7 +55,7 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
-    sendVerificationEmail: async ({ user, url }) => {
+    sendVerificationEmail: async ({ user }) => {
       await auth.handler(
         new Request(`${env.APP_URL}/api/auth/email-otp/send-verification-otp`, {
           method: "POST",

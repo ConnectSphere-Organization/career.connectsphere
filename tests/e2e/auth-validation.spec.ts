@@ -33,7 +33,6 @@ test("registration reports mismatched passwords without creating an account", as
   await page.goto("/register");
   await page.getByLabel("Full name").fill("Vivek Kumar");
   await page.getByLabel("Email address").fill("vivek@example.com");
-  await page.getByLabel("Phone number").fill("9876543210");
   await page.getByLabel("Password", { exact: true }).fill("secret1");
   await page.getByLabel("Confirm password").fill("secret2");
   await page.getByRole("button", { name: "Create account" }).click();
