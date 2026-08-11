@@ -30,7 +30,6 @@ describe("authentication schemas", () => {
     const valid = registrationSchema.parse({
       name: "  Vivek Kumar  ",
       email: "VIVEK@EXAMPLE.COM ",
-      phoneNumber: "(987) 654-3210",
       password: "secret1",
       confirmPassword: "secret1",
     });
@@ -38,7 +37,6 @@ describe("authentication schemas", () => {
     expect(valid).toMatchObject({
       name: "Vivek Kumar",
       email: "vivek@example.com",
-      phoneNumber: "9876543210",
     });
     const invalid = registrationSchema.safeParse({
       ...valid,

@@ -23,7 +23,12 @@ export default async function OffersPage({
             Issue, deliver, extend, and securely manage candidate offers.
           </p>
         </div>
-        <OfferGenerationModal applicationId={application} />
+        <OfferGenerationModal
+          applicationId={application}
+          initialValues={{
+            issuedBy: actor.name || "ConnectSphere",
+          }}
+        />
       </div>
       <div className="mt-8 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
         <table className="w-full min-w-5xl text-left text-sm">

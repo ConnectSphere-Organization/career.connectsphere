@@ -29,13 +29,6 @@ const fields = [
     placeholder: "your@email.com",
   },
   {
-    name: "phoneNumber",
-    label: "Phone number",
-    type: "tel",
-    autoComplete: "tel",
-    placeholder: "1234567890",
-  },
-  {
     name: "password",
     label: "Password",
     type: "password",
@@ -63,7 +56,6 @@ export function RegisterForm() {
     defaultValues: {
       name: "",
       email: "",
-      phoneNumber: "",
       password: "",
       confirmPassword: "",
     },
@@ -96,7 +88,6 @@ export function RegisterForm() {
         name: parsed.data.name,
         email: parsed.data.email,
         password: parsed.data.password,
-        phoneNumber: parsed.data.phoneNumber,
       });
       if (result.error) {
         setServerError(result.error.message ?? "Account creation failed");

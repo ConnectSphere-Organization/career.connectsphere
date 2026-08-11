@@ -23,3 +23,4 @@ export async function POST(request: Request) {
   await prepareOAuthCallback(request);
   return handlers.POST(request);
 }
+

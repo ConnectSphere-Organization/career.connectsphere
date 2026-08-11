@@ -19,26 +19,54 @@ type DevelopmentEmail = {
   createdAt: string;
 };
 
-const developmentMailbox: DevelopmentEmail[] = [];
+import fs from "node:fs";
+import path from "node:path";
+
+const MAILBOX_FILE = path.join(process.cwd(), ".next", "mailbox.json");
+
+function getMailbox(): DevelopmentEmail[] {
+  try {
+    if (fs.existsSync(MAILBOX_FILE)) {
+      return JSON.parse(fs.readFileSync(MAILBOX_FILE, "utf8")) as DevelopmentEmail[];
+    }
+  } catch (error) {
+    console.error("Failed to read dev mailbox file:", error);
+  }
+  return [];
+}
+
+function saveMailbox(mailbox: DevelopmentEmail[]): void {
+  try {
+    const dir = path.dirname(MAILBOX_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(MAILBOX_FILE, JSON.stringify(mailbox, null, 2), "utf8");
+  } catch (error) {
+    console.error("Failed to write dev mailbox file:", error);
+  }
+}
 
 export function isDevelopmentMailboxEnabled(): boolean {
   return env.NODE_ENV !== "production";
 }
 
 export function listDevelopmentEmails(): readonly DevelopmentEmail[] {
-  return isDevelopmentMailboxEnabled() ? developmentMailbox.toReversed() : [];
+  return isDevelopmentMailboxEnabled() ? getMailbox().toReversed() : [];
 }
 
 function storeDevelopmentEmail(
   input: Omit<DevelopmentEmail, "id" | "createdAt">,
 ): void {
-  developmentMailbox.push({
+  const mailbox = getMailbox();
+  mailbox.push({
     id: randomUUID(),
     createdAt: new Date().toISOString(),
     ...input,
   });
-  if (developmentMailbox.length > 50)
-    developmentMailbox.splice(0, developmentMailbox.length - 50);
+  if (mailbox.length > 50)
+    mailbox.splice(0, mailbox.length - 50);
+  saveMailbox(mailbox);
 }
 
 function escapeHtml(value: string): string {
@@ -101,6 +129,17 @@ export async function sendAccountEmail({
   actionLabel: string;
   actionUrl: string;
 }) {
+  if (isDevelopmentMailboxEnabled()) {
+    storeDevelopmentEmail({
+      recipient: to,
+      subject,
+      heading,
+      message,
+      actionLabel,
+      actionUrl,
+    });
+  }
+
   try {
     await getTransporter().sendMail({
       from: `ConnectSphere Careers <${env.SMTP_USER}>`,
@@ -112,14 +151,6 @@ export async function sendAccountEmail({
     });
   } catch (error) {
     if (!isDevelopmentMailboxEnabled()) throw error;
-    storeDevelopmentEmail({
-      recipient: to,
-      subject,
-      heading,
-      message,
-      actionLabel,
-      actionUrl,
-    });
   }
 }
 
@@ -130,6 +161,17 @@ export async function sendAccountOTP({
   to: string;
   otp: string;
 }): Promise<void> {
+  if (isDevelopmentMailboxEnabled()) {
+    storeDevelopmentEmail({
+      recipient: to,
+      subject: `${otp} is your ConnectSphere Careers verification code`,
+      heading: "Verify your email",
+      message: `Your verification code is ${otp}. It expires in 10 minutes.`,
+      actionLabel: "Verification code",
+      actionUrl: otp,
+    });
+  }
+
   try {
     await getTransporter().sendMail({
       from: `ConnectSphere Careers <${env.SMTP_USER}>`,
@@ -141,14 +183,6 @@ export async function sendAccountOTP({
     });
   } catch (error) {
     if (!isDevelopmentMailboxEnabled()) throw error;
-    storeDevelopmentEmail({
-      recipient: to,
-      subject: `${otp} is your ConnectSphere Careers verification code`,
-      heading: "Verify your email",
-      message: `Your verification code is ${otp}. It expires in 10 minutes.`,
-      actionLabel: "Verification code",
-      actionUrl: otp,
-    });
   }
 }
 

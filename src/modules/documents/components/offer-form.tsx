@@ -17,7 +17,7 @@ const defaults: OfferInput = {
   department: "",
   salary: "",
   offerType: "JOB",
-  payoutFrequency: "monthly",
+  payoutFrequency: "Monthly",
   startDate: "",
   endDate: "",
   duration: "",
@@ -29,7 +29,7 @@ const defaults: OfferInput = {
   hrContactName: "",
   hrContactEmail: "",
   hrContactPhone: "",
-  issuedBy: "ConnectSphere",
+  issuedBy: "",
   validUntil: "",
   additionalNotes: "",
   applicationId: "",
@@ -131,21 +131,6 @@ export function OfferForm({
       <form.Field name="salary">
         {(field) => <Field label="Compensation" field={field} />}
       </form.Field>
-      <form.Field name="payoutFrequency">
-        {(field) => <Field label="Payout frequency" field={field} />}
-      </form.Field>
-      <form.Field name="startDate">
-        {(field) => <Field label="Start date" field={field} type="date" />}
-      </form.Field>
-      <form.Field name="validUntil">
-        {(field) => <Field label="Valid until" field={field} type="date" />}
-      </form.Field>
-      <form.Field name="joiningLocation">
-        {(field) => <Field label="Joining location" field={field} />}
-      </form.Field>
-      <form.Field name="reportingManager">
-        {(field) => <Field label="Reporting manager" field={field} />}
-      </form.Field>
       <form.Field name="offerType">
         {(field) => (
           <Select
@@ -157,6 +142,40 @@ export function OfferForm({
             options={["JOB", "INTERNSHIP"]}
           />
         )}
+      </form.Field>
+      <form.Subscribe selector={(state) => state.values.offerType}>
+        {(offerType) => {
+          if (offerType !== "INTERNSHIP") return null;
+          return (
+            <>
+              <form.Field name="payoutFrequency">
+                {(field) => (
+                  <Select
+                    label="Payout frequency"
+                    value={field.state.value}
+                    onChange={(value) => field.handleChange(value)}
+                    options={["Monthly", "Annually", "Bi-weekly", "lumpsum"]}
+                  />
+                )}
+              </form.Field>
+              <form.Field name="duration">
+                {(field) => <Field label="Duration" field={field} />}
+              </form.Field>
+            </>
+          );
+        }}
+      </form.Subscribe>
+      <form.Field name="startDate">
+        {(field) => <Field label="Start date" field={field} type="date" />}
+      </form.Field>
+      <form.Field name="validUntil">
+        {(field) => <Field label="Valid until" field={field} type="date" />}
+      </form.Field>
+      <form.Field name="joiningLocation">
+        {(field) => <Field label="Joining location" field={field} />}
+      </form.Field>
+      <form.Field name="reportingManager">
+        {(field) => <Field label="Reporting manager" field={field} />}
       </form.Field>
       <form.Field name="workType">
         {(field) => (
@@ -179,19 +198,21 @@ export function OfferForm({
         {(field) => <Field label="Company" field={field} />}
       </form.Field>
       <form.Field name="issuedBy">
-        {(field) => <Field label="Issued by" field={field} />}
+        {(field) => <Field label="Issued by (HR name)" field={field} />}
       </form.Field>
       <form.Field name="hrContactEmail">
         {(field) => (
           <Field label="HR contact email" field={field} type="email" />
         )}
       </form.Field>
-      <form.Field name="benefits">
-        {(field) => <Area label="Benefits (one per line)" field={field} />}
-      </form.Field>
-      <form.Field name="additionalNotes">
-        {(field) => <Area label="Additional notes" field={field} />}
-      </form.Field>
+      <div className="grid gap-4 md:grid-cols-2 md:col-span-2">
+        <form.Field name="benefits">
+          {(field) => <Area label="Benefits (one per line)" field={field} />}
+        </form.Field>
+        <form.Field name="additionalNotes">
+          {(field) => <Area label="Additional notes" field={field} />}
+        </form.Field>
+      </div>
       <div className="flex justify-end md:col-span-2">
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(pending) => (

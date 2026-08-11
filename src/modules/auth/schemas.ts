@@ -21,10 +21,6 @@ export const registrationSchema = z
       .trim()
       .pipe(z.email("Enter a valid email address"))
       .transform((value) => value.toLowerCase()),
-    phoneNumber: z
-      .string()
-      .transform((value) => value.replace(/\D/g, ""))
-      .pipe(z.string().length(10, "Phone number must be exactly 10 digits")),
     password: z
       .string()
       .min(6, "Password must contain at least 6 characters")

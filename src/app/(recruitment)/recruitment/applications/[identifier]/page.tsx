@@ -248,6 +248,7 @@ export default async function RecruitmentApplicationPage({
                       hrContactEmail:
                         application.job.hrContact?.email || actor.email,
                       hrContactPhone: application.job.hrContact?.phone || "",
+                      issuedBy: actor.name || "ConnectSphere",
                     },
                   },
                 }
