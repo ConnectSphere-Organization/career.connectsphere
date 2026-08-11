@@ -56,15 +56,19 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await sendAccountEmail({
-        to: user.email,
-        subject: "Verify your ConnectSphere Careers email",
-        heading: "Verify your email",
-        message:
-          "Confirm your email address to finish creating your ConnectSphere Careers account.",
-        actionLabel: "Verify email",
-        actionUrl: url,
-      });
+      await auth.handler(
+        new Request(`${env.APP_URL}/api/auth/email-otp/send-verification-otp`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Origin": env.APP_URL,
+          },
+          body: JSON.stringify({
+            email: user.email,
+            type: "email-verification",
+          }),
+        })
+      );
     },
   },
   account: {
@@ -137,8 +141,6 @@ export const auth = betterAuth({
           await sendAccountOTP({ to: email, otp });
         }
       },
-      sendVerificationOnSignUp: true,
-      overrideDefaultEmailVerification: true,
       otpLength: 6,
       expiresIn: 10 * 60,
       allowedAttempts: 5,
