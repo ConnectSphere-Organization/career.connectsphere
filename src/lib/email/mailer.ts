@@ -20,9 +20,10 @@ type DevelopmentEmail = {
 };
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
-const MAILBOX_FILE = path.join(process.cwd(), ".next", "mailbox.json");
+const MAILBOX_FILE = path.join(os.tmpdir(), "connectsphere-careers", "mailbox.json");
 
 function getMailbox(): DevelopmentEmail[] {
   try {
