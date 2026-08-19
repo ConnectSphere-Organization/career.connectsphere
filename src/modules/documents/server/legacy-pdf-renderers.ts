@@ -609,15 +609,23 @@ export async function renderLegacyOfferPdf(
   const W = offerWidth;
   const H = offerHeight;
   const PAD = offerPadding;
+  const cleanSalary = input.salary
+    .replace(/₹/g, "")
+    .replace(/\bRs\.?\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
   const internship =
     input.offerType.toLowerCase() === "internship" ||
     input.position.toLowerCase().includes("intern") ||
-    input.salary === "0";
+    cleanSalary === "0" ||
+    cleanSalary === "";
   const extended = input.extensionCount > 0;
   const typeLabel = internship ? "Internship" : input.offerType || "Job";
   const salaryLabel = `${internship ? "Stipend" : "Annual CTC"}${internship && input.payoutFrequency ? ` (${input.payoutFrequency})` : ""}`;
   const salary =
-    input.salary === "0" ? "Unpaid" : `Rs.${formatCurrency(input.salary)}`;
+    cleanSalary === "0" || cleanSalary === ""
+      ? "Unpaid"
+      : `Rs. ${formatCurrency(cleanSalary)}`;
   const duration =
     input.duration ||
     (input.endDate
