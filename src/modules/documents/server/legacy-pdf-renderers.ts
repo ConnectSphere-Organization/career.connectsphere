@@ -436,7 +436,7 @@ export async function renderLegacyCertificatePdf(
     W - 310,
     metaY + 4,
     "Founder & Director",
-    "Vivek Kumar",
+    "Anita devi",
   );
   certificateSignature(
     doc,
@@ -896,7 +896,7 @@ export async function renderLegacyOfferPdf(
     .font("Helvetica-Bold")
     .fontSize(13)
     .fillColor(C.black)
-    .text("Vivek Kumar", PAD, y + 14, { lineBreak: false })
+    .text("Anita devi", PAD, y + 14, { lineBreak: false })
     .rect(PAD, y + 32, 120, 0.75)
     .fill(C.border2)
     .font("Helvetica")
