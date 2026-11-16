@@ -436,7 +436,7 @@ export async function renderLegacyCertificatePdf(
     W - 310,
     metaY + 4,
     "Founder & Director",
-    "Vivek Kumar",
+    "Anita devi",
   );
   certificateSignature(
     doc,
@@ -609,15 +609,23 @@ export async function renderLegacyOfferPdf(
   const W = offerWidth;
   const H = offerHeight;
   const PAD = offerPadding;
+  const cleanSalary = input.salary
+    .replace(/₹/g, "")
+    .replace(/\bRs\.?\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
   const internship =
     input.offerType.toLowerCase() === "internship" ||
     input.position.toLowerCase().includes("intern") ||
-    input.salary === "0";
+    cleanSalary === "0" ||
+    cleanSalary === "";
   const extended = input.extensionCount > 0;
   const typeLabel = internship ? "Internship" : input.offerType || "Job";
   const salaryLabel = `${internship ? "Stipend" : "Annual CTC"}${internship && input.payoutFrequency ? ` (${input.payoutFrequency})` : ""}`;
   const salary =
-    input.salary === "0" ? "Unpaid" : `Rs.${formatCurrency(input.salary)}`;
+    cleanSalary === "0" || cleanSalary === ""
+      ? "Unpaid"
+      : `Rs. ${formatCurrency(cleanSalary)}`;
   const duration =
     input.duration ||
     (input.endDate
@@ -888,7 +896,7 @@ export async function renderLegacyOfferPdf(
     .font("Helvetica-Bold")
     .fontSize(13)
     .fillColor(C.black)
-    .text("Vivek Kumar", PAD, y + 14, { lineBreak: false })
+    .text("Anita devi", PAD, y + 14, { lineBreak: false })
     .rect(PAD, y + 32, 120, 0.75)
     .fill(C.border2)
     .font("Helvetica")

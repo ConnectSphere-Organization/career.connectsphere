@@ -76,4 +76,33 @@ describe("legacy PDF renderer parity", () => {
     expect(result.info.total).toBe(1);
     expect(pdf.byteLength).toBeGreaterThan(10_000);
   });
+
+  it("removes Rupee symbols (₹) and formats range cleanly in offer stipend section", async () => {
+    const pdf = await renderLegacyOfferPdf({
+      id: "507f1f77bcf86cd799439011",
+      candidateName: "Vivek Kumar",
+      position: "Assurance Full Stack Developer",
+      department: "Development",
+      salary: "₹80,000 - ₹100,000",
+      offerType: "Internship",
+      payoutFrequency: "monthly",
+      startDate: new Date("2026-08-01T12:00:00Z"),
+      endDate: null,
+      duration: "3 months",
+      joiningLocation: "work from home",
+      workType: "Remote",
+      reportingManager: "HR Team",
+      createdAt: new Date("2026-07-01T12:00:00Z"),
+      validUntil: new Date("2026-07-20T12:00:00Z"),
+      extensionCount: 0,
+      hrContactName: "HR Team",
+      issuedBy: "ConnectSphere",
+      verificationUrl:
+        "https://careers.connectsphere.in/verify-offer/507f1f77bcf86cd799439011",
+    });
+    const result = await inspect(pdf);
+    expect(result.text).toContain("Rs. 80,000 - 100,000");
+    expect(result.text).not.toContain("₹");
+    expect(result.text).not.toContain("¹"); // Helvetica conversion garbage char
+  });
 });
