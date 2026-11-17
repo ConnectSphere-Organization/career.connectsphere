@@ -14,6 +14,7 @@ import {
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { env } from "@/config/env";
 import { getPublicJob } from "@/modules/jobs/server/public-jobs";
 import { formatSalary } from "@/modules/jobs/utils";
 import { getSession } from "@/lib/auth/authorization";
@@ -45,7 +46,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
     : null;
   const canonicalUrl = new URL(
     `/jobs/${job.slug ?? job.id}`,
-    process.env.APP_URL ?? "http://localhost:3001",
+    env.APP_URL,
   ).toString();
   const jobPosting = {
     "@context": "https://schema.org",
@@ -62,7 +63,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
     hiringOrganization: {
       "@type": "Organization",
       name: job.company,
-      sameAs: process.env.APP_URL ?? "http://localhost:3001",
+      sameAs: env.APP_URL,
     },
     ...(job.location
       ? {

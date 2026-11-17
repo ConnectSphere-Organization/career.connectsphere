@@ -21,6 +21,7 @@ const defaults: CertificateInput = {
   jobrole: "",
   fromDate: "",
   toDate: "",
+  issuedOn: new Date().toISOString().slice(0, 10),
   issuedBy: "ConnectSphere",
 };
 
@@ -80,15 +81,14 @@ export function CertificateForm({
       <form.Field name="jobId">
         {(field) => (
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="certificate-job">Authorized job</Label>
+            <Label htmlFor="certificate-job">Approved job (optional)</Label>
             <select
               id="certificate-job"
               className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3"
-              value={field.state.value}
+              value={field.state.value ?? ""}
               onChange={(event) => field.handleChange(event.target.value)}
-              required
             >
-              <option value="">Select a job</option>
+              <option value="">Select an approved job (optional)</option>
               {jobs.map((job) => (
                 <option key={job.id} value={job.id}>
                   {job.title} · {job.company}
@@ -118,13 +118,16 @@ export function CertificateForm({
       <form.Field name="toDate">
         {(field) => <Field label="To" field={field} type="date" />}
       </form.Field>
+      <form.Field name="issuedOn">
+        {(field) => <Field label="Issued date" field={field} type="date" />}
+      </form.Field>
       <form.Field name="issuedBy">
         {(field) => <Field label="Issued by" field={field} />}
       </form.Field>
-      <div className="flex items-end">
+      <div className="flex items-end justify-end pt-2 md:col-span-2">
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(pending) => (
-            <Button className="w-full" disabled={pending}>
+            <Button className="w-full md:w-auto px-8" disabled={pending}>
               {pending ? <LoaderCircle className="animate-spin" /> : null}Issue
               certificate
             </Button>
@@ -137,7 +140,7 @@ export function CertificateForm({
 
 type FieldValue = {
   name: string;
-  state: { value: string };
+  state: { value: string | undefined };
   handleBlur: () => void;
   handleChange: (value: string) => void;
 };
@@ -156,7 +159,7 @@ function Field({
       <Input
         id={field.name}
         type={type}
-        value={field.state.value}
+        value={field.state.value ?? ""}
         onBlur={field.handleBlur}
         onChange={(event) => field.handleChange(event.target.value)}
       />

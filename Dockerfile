@@ -39,4 +39,4 @@ COPY --from=builder /app/apps/career-portal/next.config.ts ./next.config.ts
 RUN rm -rf /usr/local/lib/node_modules/npm
 
 EXPOSE 3001
-CMD ["node", "node_modules/next/dist/bin/next", "start", "-p", "3001"]
+CMD ["sh", "-c", "node node_modules/next/dist/bin/next start -p ${PORT:-3001}"]

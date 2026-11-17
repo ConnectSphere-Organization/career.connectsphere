@@ -45,6 +45,19 @@ const serverSchema = z.object({
   RATE_LIMIT_REST_TOKEN: optionalString,
 });
 
+function resolveCanonicalUrl(): string | undefined {
+  if (process.env.APP_URL) return process.env.APP_URL;
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL)
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  if (process.env.RAILWAY_PUBLIC_DOMAIN)
+    return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL;
+  return undefined;
+}
+
 const developmentFallbacks = {
   MONGODB_URI: "mongodb://localhost:27017/connectsphere?replicaSet=rs0",
   BETTER_AUTH_SECRET: "development-only-secret-change-before-deploying",
@@ -52,9 +65,17 @@ const developmentFallbacks = {
   APP_URL: "http://localhost:3001",
 } as const;
 
+const resolvedCanonicalUrl = resolveCanonicalUrl();
+const inferredEnv = resolvedCanonicalUrl
+  ? {
+      APP_URL: resolvedCanonicalUrl,
+      BETTER_AUTH_URL: resolvedCanonicalUrl,
+    }
+  : {};
+
 const source =
   process.env.NODE_ENV === "production"
-    ? process.env
-    : { ...developmentFallbacks, ...process.env };
+    ? { ...inferredEnv, ...process.env }
+    : { ...developmentFallbacks, ...inferredEnv, ...process.env };
 
 export const env = serverSchema.parse(source);

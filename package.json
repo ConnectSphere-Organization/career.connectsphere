@@ -44,6 +44,7 @@
     "backfill:employee-master": "dotenv -e .env.local -- node scripts/backfill-employee-master.mjs",
     "backfill:employee-master:apply": "dotenv -e .env.local -- node scripts/backfill-employee-master.mjs --apply",
     "seed:retention-policies": "dotenv -e .env.local -- node scripts/seed-retention-policies.mjs",
+    "seed:admin": "node scripts/seed-admin.mjs",
     "worker:outbox": "dotenv -e .env.local -- node scripts/outbox-worker.mjs",
     "worker:outbox:once": "dotenv -e .env.local -- node scripts/outbox-worker.mjs --once",
     "privacy:retention": "dotenv -e .env.local -- node scripts/privacy-retention.mjs",

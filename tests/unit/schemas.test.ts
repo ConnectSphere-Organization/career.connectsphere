@@ -216,6 +216,40 @@ describe("critical public input schemas", () => {
     ).toBe(true);
   });
 
+  it("accepts a certificate with optional or omitted approved job", () => {
+    const base = {
+      name: "Vivek Kumar",
+      recipientEmail: "vivek@example.com",
+      domain: "Engineering",
+      jobrole: "Developer",
+      fromDate: "2026-07-01",
+      toDate: "2026-07-12",
+      issuedBy: "ConnectSphere HR",
+    };
+
+    expect(certificateInputSchema.safeParse({ ...base, jobId: "" }).success).toBe(
+      true,
+    );
+    expect(
+      certificateInputSchema.safeParse({ ...base, jobId: undefined }).success,
+    ).toBe(true);
+    expect(
+      certificateInputSchema.safeParse({ ...base, jobId: null }).success,
+    ).toBe(true);
+    expect(
+      certificateInputSchema.safeParse({
+        ...base,
+        jobId: "6a54de39ede954fc2c2133d4",
+      }).success,
+    ).toBe(true);
+    expect(
+      certificateInputSchema.safeParse({
+        ...base,
+        jobId: "invalid-job-id",
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects a certificate whose end date precedes its start date", () => {
     const result = certificateInputSchema.safeParse({
       jobId: "6a54de39ede954fc2c2133d4",

@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";
 
+import { env } from "@/config/env";
 import { QueryProvider } from "@/components/providers/query-provider";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3001"),
+  metadataBase: new URL(env.APP_URL),
   title: {
     default: "ConnectSphere Careers",
     template: "%s | ConnectSphere Careers",
