@@ -18,7 +18,7 @@ export default async function CertificatesPage() {
           <p className="section-kicker">Documents</p>
           <h1 className="mt-3 text-4xl font-extrabold">Certificates</h1>
           <p className="mt-2 text-slate-600">
-            Issue certificates for jobs in your authorized scope.
+            Issue certificates for jobs in your authorized scope or general unlinked roles.
           </p>
         </div>
         <CertificateGenerationModal
@@ -45,7 +45,7 @@ export default async function CertificatesPage() {
                   </p>
                 </td>
                 <td className="p-4">
-                  {item.job?.title ?? "Legacy unlinked"} · {item.jobrole}
+                  {item.job?.title ?? "Unlinked"} · {item.jobrole}
                 </td>
                 <td className="p-4">
                   {item.issuedOn.toLocaleDateString("en-IN")}
@@ -65,7 +65,7 @@ export default async function CertificatesPage() {
         </table>
         {certificates.length === 0 ? (
           <p className="p-6 text-slate-500">
-            No certificates are linked to your assigned jobs.
+            No certificates found.
           </p>
         ) : null}
       </div>

@@ -45,7 +45,13 @@ export async function listCertificates(actor: RecruitmentActor) {
   return prisma.certificate.findMany({
     where: actor.isAdministrator
       ? {}
-      : { jobId: { in: [...actor.assignedJobs] } },
+      : {
+          OR: [
+            { jobId: { in: [...actor.assignedJobs] } },
+            { jobId: null },
+            { userId: actor.id },
+          ],
+        },
     orderBy: { issuedOn: "desc" },
     select: {
       id: true,
@@ -68,18 +74,23 @@ export async function issueCertificate(
   actor: RecruitmentActor,
 ) {
   const parsed = certificateInputSchema.parse(input);
-  assertAssignedJob(actor, parsed.jobId);
-  const job = await prisma.job.findUnique({
-    where: { id: parsed.jobId },
-    select: { id: true },
-  });
-  if (!job) throw new ApiError("Job not found", 404);
+  const jobId = parsed.jobId?.trim() ? parsed.jobId.trim() : null;
+  if (jobId) {
+    assertAssignedJob(actor, jobId);
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      select: { id: true },
+    });
+    if (!job) throw new ApiError("Job not found", 404);
+  }
   const certificate = await prisma.certificate.create({
     data: {
       ...parsed,
+      jobId,
       recipientEmail: nullable(parsed.recipientEmail),
       fromDate: date(parsed.fromDate),
       toDate: date(parsed.toDate),
+      issuedOn: parsed.issuedOn ? date(parsed.issuedOn) : new Date(),
       userId: actor.id,
     },
   });
@@ -93,7 +104,7 @@ export async function issueCertificate(
       changes: {
         name: certificate.name,
         domain: certificate.domain,
-        jobId: parsed.jobId,
+        jobId,
       },
     },
   });

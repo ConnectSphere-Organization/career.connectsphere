@@ -5,13 +5,20 @@ const optionalText = (maximum: number) => z.string().trim().max(maximum);
 
 export const certificateInputSchema = z
   .object({
-    jobId: z.string().regex(/^[a-f\d]{24}$/i, "Select an authorized job"),
+    jobId: z
+      .union([
+        z.literal(""),
+        z.string().regex(/^[a-f\d]{24}$/i, "Select an authorized job"),
+      ])
+      .optional()
+      .nullable(),
     name: z.string().trim().min(2).max(120),
     recipientEmail: z.union([z.literal(""), z.email().max(254)]),
     domain: z.string().trim().min(2).max(120),
     jobrole: z.string().trim().min(2).max(120),
     fromDate: requiredDate,
     toDate: requiredDate,
+    issuedOn: z.union([z.literal(""), requiredDate]).optional(),
     issuedBy: z.string().trim().min(2).max(120),
   })
   .refine((value) => value.toDate >= value.fromDate, {

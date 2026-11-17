@@ -12,6 +12,7 @@ import QRCode from "qrcode";
 
 import { recordAudit } from "@/lib/audit/audit";
 import type { CollaborationActor } from "@/lib/auth/authorization";
+import { env } from "@/config/env";
 import { prisma } from "@/lib/db/prisma";
 import { ApiError } from "@/lib/http/api-error";
 import {
@@ -845,7 +846,7 @@ export async function issueGeneratedDocument(
 ) {
   const input = generatedDocumentInputSchema.parse(raw);
   const verificationCode = randomBytes(12).toString("hex").toUpperCase();
-  const verificationUrl = `${process.env.APP_URL ?? "http://localhost:3001"}/verify/document/${verificationCode}`;
+  const verificationUrl = `${env.APP_URL}/verify/document/${verificationCode}`;
   const qrCode = await QRCode.toDataURL(verificationUrl, {
     margin: 1,
     width: 320,

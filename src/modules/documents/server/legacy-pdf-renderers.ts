@@ -1,5 +1,7 @@
 import "server-only";
 
+import fs from "node:fs";
+import path from "node:path";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 
@@ -39,6 +41,19 @@ function roundRect(
     .closePath();
 }
 
+function fillRounded(
+  doc: PDFKit.PDFDocument,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  fill: string,
+) {
+  roundRect(doc, x, y, width, height, radius);
+  doc.fill(fill);
+}
+
 function formatLegacyDate(value: Date | null | undefined): string {
   return value
     ? value.toLocaleDateString("en-IN", {
@@ -51,15 +66,18 @@ function formatLegacyDate(value: Date | null | undefined): string {
 }
 
 const certificateColors = {
-  black: "#0d0d0d",
-  dark2: "#1c1c1c",
-  dark3: "#252525",
-  lime: "#d6f300",
-  limeDim: "#a8c200",
   white: "#ffffff",
-  offWhite: "#e8e8e8",
-  gray1: "#aaaaaa",
-  gray2: "#666666",
+  bgSubtle: "#f8fafc",
+  borderOuter: "#006c49",
+  borderInner: "#a7f3d0",
+  borderLight: "#e2e8f0",
+  primaryGreen: "#006c49",
+  primaryHover: "#005a3d",
+  primarySoft: "#ecfdf5",
+  textBlack: "#0f172a",
+  textMuted: "#475569",
+  textSubtle: "#64748b",
+  textLight: "#94a3b8",
 } as const;
 const certificateWidth = 841.89;
 const certificateHeight = 595.28;
@@ -74,23 +92,36 @@ function certificateTextCenter(
   });
 }
 
-function hexToRgb(hex: string): [number, number, number] {
-  const value = Number.parseInt(hex.replace("#", ""), 16);
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-}
+function drawVectorBrandIcon(
+  doc: PDFKit.PDFDocument,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  roundRect(doc, x, y, width, height, 7);
+  doc.fill(certificateColors.primaryGreen);
 
-function lerpColor(
-  from: string,
-  to: string,
-  ratio: number,
-): [number, number, number] {
-  const a = hexToRgb(from);
-  const b = hexToRgb(to);
-  return [
-    Math.round(a[0] + (b[0] - a[0]) * ratio),
-    Math.round(a[1] + (b[1] - a[1]) * ratio),
-    Math.round(a[2] + (b[2] - a[2]) * ratio),
-  ];
+  doc
+    .save()
+    .lineWidth(1.8)
+    .lineCap("round")
+    .lineJoin("round")
+    .strokeColor(certificateColors.white);
+
+  const bx = x + 7.5;
+  const by = y + 7.5;
+  const bw = 19;
+  const bh = 14;
+  roundRect(doc, bx, by, bw, bh, 3);
+  doc.stroke();
+
+  doc
+    .moveTo(bx + 3, by + bh)
+    .lineTo(bx + 1, by + bh + 4.5)
+    .lineTo(bx + 7, by + bh)
+    .stroke()
+    .restore();
 }
 
 function drawCertificateQr(
@@ -104,33 +135,29 @@ function drawCertificateQr(
     errorCorrectionLevel: "H",
   }) as unknown as QrData;
   const modules = qr.modules.size;
-  const pad = size * 0.028;
+  const pad = size * 0.04;
   const moduleSize = (size - pad * 2) / modules;
-  roundRect(doc, x, y, size, size, 6);
-  doc.fill(certificateColors.black);
+
+  roundRect(doc, x, y, size, size, 8);
+  doc.fill(certificateColors.white);
   doc.save();
-  roundRect(doc, x, y, size, size, 6);
-  doc.lineWidth(1).strokeColor(certificateColors.limeDim).stroke();
+  roundRect(doc, x, y, size, size, 8);
+  doc.lineWidth(1).strokeColor(certificateColors.borderInner).stroke();
   doc.restore();
-  const color = (row: number) =>
-    lerpColor(
-      certificateColors.lime,
-      certificateColors.white,
-      row / (modules - 1),
-    );
+
   const eye = (row: number, column: number) => {
     const cx = x + pad + (column + 3.5) * moduleSize;
     const cy = y + pad + (row + 3.5) * moduleSize;
-    const c = color(row + 3.5);
     doc
       .circle(cx, cy, 3.5 * moduleSize)
-      .fill(c)
+      .fill(certificateColors.primaryGreen)
       .circle(cx, cy, 2.5 * moduleSize)
-      .fill(certificateColors.black)
+      .fill(certificateColors.white)
       .circle(cx, cy, 1.5 * moduleSize)
-      .fill(c);
+      .fill(certificateColors.primaryGreen);
   };
-  for (let row = 0; row < modules; row += 1)
+
+  for (let row = 0; row < modules; row += 1) {
     for (let column = 0; column < modules; column += 1) {
       if (!qr.modules.get(row, column)) continue;
       const topLeft = row < 7 && column < 7;
@@ -148,10 +175,12 @@ function drawCertificateQr(
           y + pad + row * moduleSize + moduleSize / 2,
           moduleSize * 0.46,
         )
-        .fill(color(row));
+        .fill(certificateColors.textBlack);
     }
-  const bracketLength = 10;
-  const bracketPosition = -5;
+  }
+
+  const bracketLength = 8;
+  const bracketPosition = -4;
   (
     [
       [x + bracketPosition, y + bracketPosition, 1, 1],
@@ -162,8 +191,8 @@ function drawCertificateQr(
   ).forEach(([cx, cy, dx, dy]) => {
     doc
       .save()
-      .lineWidth(1.5)
-      .strokeColor(certificateColors.lime)
+      .lineWidth(1.2)
+      .strokeColor(certificateColors.primaryGreen)
       .moveTo(cx, cy)
       .lineTo(cx + dx * bracketLength, cy)
       .stroke()
@@ -178,101 +207,96 @@ function drawCertificateBackground(doc: PDFKit.PDFDocument) {
   const C = certificateColors;
   const W = certificateWidth;
   const H = certificateHeight;
-  doc.rect(0, 0, W, H).fill(C.black);
-  for (let index = 18; index >= 0; index -= 1) {
-    const radius = 320 * (index / 18);
-    const light = Math.round(8 * (index / 18));
-    const color = `#${[light + 14, light + 16, 0].map((part) => Math.min(part, 255).toString(16).padStart(2, "0")).join("")}`;
-    doc.circle(W * 0.82, H * 0.18, radius).fill(color);
+
+  // Pure white base
+  doc.rect(0, 0, W, H).fill(C.white);
+
+  // Subtle clean background grid matching the website hero
+  doc.save().lineWidth(0.3).strokeColor(C.borderLight).opacity(0.6);
+  for (let x = 32; x < W - 32; x += 36) {
+    doc.moveTo(x, 24).lineTo(x, H - 24).stroke();
   }
-  for (let index = 14; index >= 0; index -= 1) {
-    const radius = 240 * (index / 14);
-    const light = Math.round(6 * (index / 14));
-    const color = `#${[light + 12, light + 14, 0].map((part) => Math.min(part, 255).toString(16).padStart(2, "0")).join("")}`;
-    doc.circle(W * 0.12, H * 0.85, radius).fill(color);
+  for (let y = 32; y < H - 32; y += 36) {
+    doc.moveTo(24, y).lineTo(W - 24, y).stroke();
   }
-  doc
-    .rect(0, 0, W, 6)
-    .fill(C.lime)
-    .rect(0, H - 6, W, 6)
-    .fill(C.lime)
-    .rect(0, 6, 5, H - 12)
-    .fill(C.limeDim)
-    .rect(W - 5, 6, 5, H - 12)
-    .fill(C.limeDim);
+  doc.restore();
+
+  // Outer primary green frame
   doc
     .save()
-    .rect(22, 22, W - 44, H - 44)
+    .rect(18, 18, W - 36, H - 36)
+    .lineWidth(2)
+    .strokeColor(C.borderOuter)
+    .stroke()
+    .restore();
+
+  // Inner soft mint frame
+  doc
+    .save()
+    .rect(24, 24, W - 48, H - 48)
     .lineWidth(0.8)
-    .strokeColor(C.limeDim)
+    .strokeColor(C.borderInner)
     .stroke()
     .restore();
+
+  // Corner geometric accents
+  const cornerSize = 16;
+  const cornerOffset = 18;
   (
     [
-      [22, 22],
-      [W - 38, 22],
-      [22, H - 38],
-      [W - 38, H - 38],
-    ] as Point[]
-  ).forEach(([x, y]) => doc.rect(x, y, 16, 16).fill(C.lime));
-  doc.save().lineWidth(0.4).strokeColor(C.lime).opacity(0.12);
-  for (let i = 0; i < 8; i += 1) {
-    const offset = 30 + i * 14;
-    doc.moveTo(5, offset).lineTo(offset, 5).stroke();
-  }
-  doc.restore();
-  doc.save().lineWidth(0.4).strokeColor(C.lime).opacity(0.12);
-  for (let i = 0; i < 8; i += 1) {
-    const offset = 30 + i * 14;
+      [cornerOffset, cornerOffset, 1, 1],
+      [W - cornerOffset, cornerOffset, -1, 1],
+      [cornerOffset, H - cornerOffset, 1, -1],
+      [W - cornerOffset, H - cornerOffset, -1, -1],
+    ] as Array<[number, number, number, number]>
+  ).forEach(([cx, cy, dx, dy]) => {
     doc
-      .moveTo(W - 5, H - offset)
-      .lineTo(W - offset, H - 5)
-      .stroke();
+      .save()
+      .lineWidth(2.5)
+      .strokeColor(C.borderOuter)
+      .moveTo(cx, cy + dy * cornerSize)
+      .lineTo(cx, cy)
+      .lineTo(cx + dx * cornerSize, cy)
+      .stroke()
+      .restore();
+  });
+
+  // Original logo and brand typography from home page
+  const logoPath = path.join(process.cwd(), "public", "brand-logo.png");
+  const logoAltPath = path.join(process.cwd(), "public", "logo.png");
+  const actualLogo = fs.existsSync(logoPath)
+    ? logoPath
+    : fs.existsSync(logoAltPath)
+      ? logoAltPath
+      : null;
+
+  const logoW = 34;
+  const logoH = 34;
+  const textW = 150;
+  const brandX = (W - (logoW + 10 + textW)) / 2;
+  const brandY = 36;
+
+  if (actualLogo) {
+    try {
+      doc.image(actualLogo, brandX, brandY, { width: logoW, height: logoH });
+    } catch {
+      drawVectorBrandIcon(doc, brandX, brandY, logoW, logoH);
+    }
+  } else {
+    drawVectorBrandIcon(doc, brandX, brandY, logoW, logoH);
   }
-  doc.restore();
-  doc
-    .save()
-    .lineWidth(0.6)
-    .strokeColor(C.lime)
-    .opacity(0.5)
-    .moveTo(50, 118)
-    .lineTo(W - 50, 118)
-    .stroke()
-    .restore();
-  doc
-    .save()
-    .lineWidth(0.6)
-    .strokeColor(C.lime)
-    .opacity(0.5)
-    .moveTo(50, H - 125)
-    .lineTo(W - 50, H - 125)
-    .stroke()
-    .restore();
-  (
-    [
-      [50, 118],
-      [W - 50, 118],
-      [50, H - 125],
-      [W - 50, H - 125],
-    ] as Point[]
-  ).forEach(([x, y]) => doc.circle(x, y, 3).fill(C.lime));
-  const logoX = W / 2 - 95;
-  const logoY = 34;
-  roundRect(doc, logoX, logoY, 190, 40, 10);
-  doc.fill(C.dark2).rect(logoX, logoY, 5, 40).fill(C.lime);
-  fillRounded(doc, logoX + 12, logoY + 6, 28, 28, 6, C.lime);
+
   doc
     .font("Helvetica-Bold")
-    .fontSize(9)
-    .fillColor(C.black)
-    .text("CS", logoX + 19, logoY + 16, { lineBreak: false });
+    .fontSize(19)
+    .fillColor(C.textBlack)
+    .text("ConnectSphere", brandX + logoW + 10, brandY + 2, { lineBreak: false });
+
   doc
     .font("Helvetica-Bold")
-    .fontSize(16)
-    .fillColor(C.lime)
-    .text("ConnectSphere", logoX + 55, logoY + 12, { lineBreak: false })
-    .circle(W / 2, logoY - 10, 2.5)
-    .fill(C.lime);
+    .fontSize(8.5)
+    .fillColor(C.primaryGreen)
+    .text("CAREERS", brandX + logoW + 11, brandY + 23, { lineBreak: false });
 }
 
 function certificateSignature(
@@ -284,24 +308,38 @@ function certificateSignature(
 ) {
   doc
     .font("Helvetica-Bold")
-    .fontSize(10)
-    .fillColor(certificateColors.white)
-    .text(name, x, y - 12, { lineBreak: false, width: 130 });
+    .fontSize(10.5)
+    .fillColor(certificateColors.textBlack)
+    .text(name, x, y - 13, { lineBreak: false, width: 130 });
   doc
     .save()
-    .lineWidth(0.8)
-    .strokeColor(certificateColors.limeDim)
+    .lineWidth(1.2)
+    .strokeColor(certificateColors.primaryGreen)
     .moveTo(x, y)
     .lineTo(x + 130, y)
     .stroke()
     .restore()
     .circle(x, y, 2.5)
-    .fill(certificateColors.lime);
+    .fill(certificateColors.primaryGreen);
   doc
     .font("Helvetica")
     .fontSize(8)
-    .fillColor(certificateColors.gray1)
+    .fillColor(certificateColors.textSubtle)
     .text(label, x, y + 6, { lineBreak: false, width: 130 });
+}
+
+export function calculateDuration(from: Date, to: Date): string {
+  const ms = Math.abs(to.getTime() - from.getTime());
+  const totalDays = Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
+  if (totalDays < 7) {
+    return `${totalDays} ${totalDays === 1 ? "Day" : "Days"}`;
+  }
+  const approxMonths = Math.round(totalDays / 30.44);
+  if (approxMonths >= 1 && Math.abs(totalDays - approxMonths * 30.44) <= 5) {
+    return `${approxMonths} ${approxMonths === 1 ? "Month" : "Months"}`;
+  }
+  const weeks = Math.round(totalDays / 7);
+  return `${weeks} ${weeks === 1 ? "Week" : "Weeks"}`;
 }
 
 export type LegacyCertificatePdfInput = {
@@ -337,124 +375,149 @@ export async function renderLegacyCertificatePdf(
     margins: { top: 0, bottom: 0, left: 0, right: 0 },
   });
   drawCertificateBackground(doc);
-  doc.font("Helvetica-Bold").fontSize(24).fillColor(C.white);
-  certificateTextCenter(doc, "INTERNSHIP COMPLETION CERTIFICATE", 132);
+
+  // Main certificate title
+  doc.font("Helvetica-Bold").fontSize(26).fillColor(C.textBlack);
+  certificateTextCenter(doc, "INTERNSHIP COMPLETION CERTIFICATE", 112);
   const titleWidth = doc.widthOfString("INTERNSHIP COMPLETION CERTIFICATE");
   doc
     .save()
-    .lineWidth(1.5)
-    .strokeColor(C.lime)
-    .moveTo((W - titleWidth) / 2, 162)
-    .lineTo((W + titleWidth) / 2, 162)
+    .lineWidth(2)
+    .strokeColor(C.primaryGreen)
+    .moveTo((W - titleWidth) / 2, 145)
+    .lineTo((W + titleWidth) / 2, 145)
     .stroke()
     .restore();
-  doc.font("Helvetica").fontSize(10).fillColor(C.gray1);
+
+  doc.font("Helvetica").fontSize(10).fillColor(C.textSubtle);
   certificateTextCenter(
     doc,
     "Presented by ConnectSphere · connectsphere.in",
-    170,
+    154,
   );
-  doc.font("Helvetica").fontSize(12);
-  certificateTextCenter(doc, "This is to certify that", 196);
-  doc.font("Helvetica-Bold").fontSize(40).fillColor(C.lime);
-  certificateTextCenter(doc, input.name, 212);
+
+  doc.font("Helvetica").fontSize(12).fillColor(C.textMuted);
+  certificateTextCenter(doc, "This is to certify that", 182);
+
+  // Recipient name in bold black text
+  doc.font("Helvetica-Bold").fontSize(40).fillColor(C.textBlack);
+  certificateTextCenter(doc, input.name, 202);
   const nameWidth = doc.widthOfString(input.name);
   doc
     .save()
-    .lineWidth(1)
-    .strokeColor(C.limeDim)
-    .opacity(0.6)
-    .moveTo((W - nameWidth) / 2, 260)
-    .lineTo((W + nameWidth) / 2, 260)
+    .lineWidth(1.5)
+    .strokeColor(C.primaryGreen)
+    .moveTo((W - nameWidth - 30) / 2, 250)
+    .lineTo((W + nameWidth + 30) / 2, 250)
     .stroke()
     .restore();
-  doc.font("Helvetica").fontSize(11).fillColor(C.gray1);
+
+  doc.font("Helvetica").fontSize(11).fillColor(C.textMuted);
   certificateTextCenter(
     doc,
     "has successfully completed the internship program in",
-    268,
+    258,
   );
+
+  // Role pill with green styling
   const role = `${input.jobrole}  ·  ${input.domain}`;
   doc.font("Helvetica-Bold").fontSize(12);
   const roleWidth = doc.widthOfString(role);
   const pillX = (W - roleWidth - 40) / 2;
-  roundRect(doc, pillX, 284, roleWidth + 40, 24, 12);
-  doc.fill(C.dark3);
+  roundRect(doc, pillX, 276, roleWidth + 40, 26, 13);
+  doc.fill(C.primarySoft);
   doc.save();
-  roundRect(doc, pillX, 284, roleWidth + 40, 24, 12);
-  doc.lineWidth(0.8).strokeColor(C.limeDim).stroke().restore();
-  doc.fillColor(C.lime).text(role, pillX + 20, 290, { lineBreak: false });
-  doc.font("Helvetica").fontSize(10).fillColor(C.gray1);
+  roundRect(doc, pillX, 276, roleWidth + 40, 26, 13);
+  doc.lineWidth(1).strokeColor(C.primaryGreen).stroke().restore();
+  doc.fillColor(C.primaryGreen).text(role, pillX + 20, 283, { lineBreak: false });
+
+  // Starting Date and Duration
+  const durationText = calculateDuration(input.fromDate, input.toDate);
+  doc.font("Helvetica-Bold").fontSize(11.5).fillColor(C.textBlack);
   certificateTextCenter(
     doc,
-    `Duration :  ${formatLegacyDate(input.fromDate)}  -  ${formatLegacyDate(input.toDate)}`,
-    320,
+    `Starting Date :  ${formatLegacyDate(input.fromDate)}        |        Duration :  ${durationText}`,
+    322,
   );
-  doc.fontSize(9).fillColor(C.gray2);
+
+  doc.font("Helvetica").fontSize(9).fillColor(C.textSubtle);
   certificateTextCenter(
     doc,
     "in recognition of outstanding commitment, professionalism, and dedication to learning.",
-    336,
+    342,
   );
+
+  // QR Code
   const qrX = 50;
-  const qrY = H - 110;
+  const qrY = H - 118;
   drawCertificateQr(doc, input.verificationUrl, qrX, qrY, 68);
   doc
     .font("Helvetica")
-    .fontSize(7)
-    .fillColor(C.gray2)
+    .fontSize(7.5)
+    .fillColor(C.textSubtle)
     .text("Scan to verify", qrX, qrY + 76, {
       lineBreak: false,
       width: 68,
       align: "center",
     });
+
+  // Metadata block
   const metaX = 175;
-  const metaY = H - 104;
+  const metaY = H - 110;
+  const displayVerifyAt = input.verificationUrl.replace(/^https?:\/\//, "");
   [
     ["Certificate ID", `ConnectSphere-${input.id}`],
     ["Issued On", formatLegacyDate(input.issuedOn ?? new Date())],
-    ["Verify At", input.verificationUrl],
+    ["Verify At", displayVerifyAt],
   ].forEach(([label, value], index) => {
     const y = metaY + index * 18;
     doc
       .font("Helvetica")
-      .fontSize(8)
-      .fillColor(C.gray2)
+      .fontSize(8.5)
+      .fillColor(C.textSubtle)
       .text(`${label} :`, metaX, y, { lineBreak: false });
     doc
       .font("Helvetica-Bold")
-      .fillColor(C.offWhite)
+      .fillColor(C.textBlack)
       .text(value ?? "", metaX + 80, y, {
         lineBreak: false,
         width: 250,
         ellipsis: true,
       });
   });
-  doc.rect(metaX - 12, metaY, 2, 50).fill(C.limeDim);
+
+  doc.rect(metaX - 12, metaY - 2, 2.5, 52).fill(C.primaryGreen);
+
   certificateSignature(
     doc,
     W - 310,
-    metaY + 4,
+    metaY + 6,
     "Founder & Director",
     "Anita devi",
   );
   certificateSignature(
     doc,
     W - 160,
-    metaY + 4,
+    metaY + 6,
     "HR Manager",
     "ConnectSphere Team",
   );
+
+  const verifyHost = input.verificationUrl
+    ? input.verificationUrl.replace(/^https?:\/\//, "").split("/")[0]
+    : "connectsphere.in";
+
   doc
     .font("Helvetica")
-    .fontSize(7)
-    .fillColor(C.gray2)
+    .fontSize(7.5)
+    .fillColor(C.textLight)
     .text(
-      "This is a digitally issued certificate and is valid without a physical signature. Verify at connectsphere.in/verify",
+      `This is a digitally issued certificate and is valid without a physical signature. Verify at ${verifyHost}/verify`,
       50,
       H - 32,
       { lineBreak: false, width: W - 100, align: "center" },
     );
+
   doc.end();
   return output;
 }
@@ -479,18 +542,6 @@ const offerColors = {
 const offerWidth = 595.28;
 const offerHeight = 841.89;
 const offerPadding = 40;
-function fillRounded(
-  doc: PDFKit.PDFDocument,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-  fill: string,
-) {
-  roundRect(doc, x, y, width, height, radius);
-  doc.fill(fill);
-}
 function strokeRounded(
   doc: PDFKit.PDFDocument,
   x: number,
